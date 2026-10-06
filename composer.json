@@ -14,5 +14,11 @@
                    "Ekonomi\\SsoAuth\\SsoAuthServiceProvider"
                ]
            }
+       },
+       "require-dev": {
+              "illuminate/support": "^13.34",
+              "illuminate/http": "^13.34",
+              "illuminate/routing": "^13.34",
+              "illuminate/database": "^13.34"
        }
-   }
+}
