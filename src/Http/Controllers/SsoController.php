@@ -89,7 +89,8 @@ class SsoController
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        $postLogoutUri = url('/');
+        // Redirect ke Portal SSO utama jika ditetapkan, jika tidak kembali ke halaman utama sistem ini
+        $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
         $keycloakBaseUrl = config('services.keycloak.base_url');
         $keycloakRealm   = config('services.keycloak.realms');
 
