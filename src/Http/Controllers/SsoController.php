@@ -89,8 +89,21 @@ class SsoController
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Redirect ke Portal SSO utama jika ditetapkan, jika tidak kembali ke halaman utama sistem ini
-        $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
+        // JIKA PENGGUNA LOG MASUK SECARA NATIVE (Direct Login)
+        // Mereka tidak mempunyai sso_id_token, jadi terus kembalikan ke skrin login eBilik
+        if (empty($idTokenHint)) {
+            return redirect('/login')->with('logout_success', 'Anda telah berjaya log keluar.');
+        }
+
+        // JIKA PENGGUNA LOG MASUK MELALUI SSO
+        // Jika sistem diatur untuk tutup tab selepas logout
+        if (env('KEYCLOAK_CLOSE_TAB', false)) {
+            $postLogoutUri = url('/auth/close-tab');
+        } else {
+            // Jika tidak tutup tab, lompat ke Portal SSO utama
+            $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
+        }
+
         $keycloakBaseUrl = config('services.keycloak.base_url');
         $keycloakRealm   = config('services.keycloak.realms');
 
@@ -112,5 +125,21 @@ class SsoController
         }
 
         return redirect('/');
+    }
+
+    public function closeTab()
+    {
+        $fallbackUrl = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
+        return response(
+            '<script>
+                // Cuba tutup tab ini secara automatik
+                window.close();
+                
+                // Jika browser menghalang tutup tab, lencongkan pengguna ke portal SSO sebagai pelan sandaran
+                setTimeout(function() {
+                    window.location.href = "'.$fallbackUrl.'";
+                }, 1000);
+            </script>'
+        );
     }
 }
