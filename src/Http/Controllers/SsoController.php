@@ -73,7 +73,8 @@ class SsoController
             Session::put('sso_id_token', $idToken);
             
             Auth::login($user);
-            return redirect('/home'); // Atau dashboard mengikut sistem masing-masing
+            $redirectUrl = env('KEYCLOAK_LOGIN_REDIRECT', '/dashboard');
+            return redirect()->intended($redirectUrl);
             
         } catch (\Exception $e) {
             return redirect('/')->withErrors(['error' => 'Ralat SSO: ' . $e->getMessage()]);
