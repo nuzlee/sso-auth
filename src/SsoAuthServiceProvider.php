@@ -23,6 +23,15 @@ class SsoAuthServiceProvider extends ServiceProvider
 
     public function register()
     {
-        // (Kosong untuk asas)
+        // Suntik konfigurasi services.keycloak secara automatik dari .env
+        config([
+            'services.keycloak' => array_merge([
+                'client_id'     => env('KEYCLOAK_CLIENT_ID'),
+                'client_secret' => env('KEYCLOAK_CLIENT_SECRET'),
+                'redirect'      => env('KEYCLOAK_REDIRECT_URI'),
+                'base_url'      => env('KEYCLOAK_BASE_URL'),
+                'realms'        => env('KEYCLOAK_REALM'),
+            ], config('services.keycloak') ?? [])
+        ]);
     }
 }
