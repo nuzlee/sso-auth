@@ -119,7 +119,7 @@ class SsoController
             Auth::login($user);
 
             return redirect()->intended(
-                env('KEYCLOAK_LOGIN_REDIRECT', '/dashboard')
+                config('services.keycloak.login_redirect') ?? env('KEYCLOAK_LOGIN_REDIRECT', '/dashboard')
             );
 
         } catch (\Exception $e) {
@@ -141,17 +141,17 @@ class SsoController
             return redirect('/login')->with('logout_success', 'Anda telah berjaya log keluar.');
         }
 
+        $globalLogout = config('services.keycloak.global_logout') ?? env('KEYCLOAK_GLOBAL_LOGOUT', false);
+        $closeTab     = config('services.keycloak.close_tab') ?? env('KEYCLOAK_CLOSE_TAB', false);
+        $postLogout   = config('services.keycloak.post_logout_url') ?? env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
+
         // 2. JIKA PENGGUNA INGIN GLOBAL LOGOUT (Matikan sesi Keycloak sepenuhnya merentasi semua sistem)
         // Hanya dijalankan jika developer menetapkan KEYCLOAK_GLOBAL_LOGOUT=true di .env
-        if (env('KEYCLOAK_GLOBAL_LOGOUT', false)) {
-            if (env('KEYCLOAK_CLOSE_TAB', false)) {
-                $postLogoutUri = url('/auth/close-tab');
-            } else {
-                $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
-            }
+        if ($globalLogout) {
+            $postLogoutUri = $closeTab ? url('/auth/close-tab') : $postLogout;
 
             $keycloakBaseUrl = config('services.keycloak.base_url');
-            $keycloakRealm   = config('services.keycloak.realms');
+            $keycloakRealm   = config('services.keycloak.realms') ?? config('services.keycloak.realm');
 
             if ($keycloakBaseUrl && $keycloakRealm) {
                 $params = [
@@ -172,18 +172,17 @@ class SsoController
         }
 
         // 3. SECARA LALAI: LOCAL LOGOUT (Kekalkan sesi SSO di Keycloak & Portal Dashboard)
-        // Tutup tab jika ditetapkan, atau lencongkan semula ke Dashboard Portal SSO
-        if (env('KEYCLOAK_CLOSE_TAB', false)) {
+        // Tutup tab jika diaktifkan, atau lencongkan semula ke Dashboard Portal SSO
+        if ($closeTab) {
             return $this->closeTab();
         }
 
-        $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', 'http://ssolanding.local/dashboard');
-        return redirect()->away($postLogoutUri);
+        return redirect()->away($postLogout);
     }
 
     public function closeTab()
     {
-        $fallbackUrl = env('KEYCLOAK_POST_LOGOUT_URL', 'http://ssolanding.local/dashboard');
+        $fallbackUrl = config('services.keycloak.post_logout_url') ?? env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
         return response(
             '<script>
                 window.close();

@@ -29,13 +29,17 @@ class SsoAuthServiceProvider extends ServiceProvider
 
         config([
             'services.keycloak' => array_merge([
-                'client_id'     => env('KEYCLOAK_CLIENT_ID'),
-                'client_secret' => env('KEYCLOAK_CLIENT_SECRET'),
-                'redirect'      => env('KEYCLOAK_REDIRECT_URI'),
-                'base_url'      => env('KEYCLOAK_BASE_URL'),
+                'client_id'       => env('KEYCLOAK_CLIENT_ID'),
+                'client_secret'   => env('KEYCLOAK_CLIENT_SECRET'),
+                'redirect'        => env('KEYCLOAK_REDIRECT_URI'),
+                'base_url'        => env('KEYCLOAK_BASE_URL'),
+                'close_tab'       => env('KEYCLOAK_CLOSE_TAB', false),
+                'post_logout_url' => env('KEYCLOAK_POST_LOGOUT_URL'),
+                'global_logout'   => env('KEYCLOAK_GLOBAL_LOGOUT', false),
+                'login_redirect'  => env('KEYCLOAK_LOGIN_REDIRECT', '/dashboard'),
             ], $existing, [
-                'realms'        => $realm,
-                'realm'         => $realm,
+                'realms'          => $realm,
+                'realm'           => $realm,
             ])
         ]);
     }
