@@ -136,50 +136,60 @@ class SsoController
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // JIKA PENGGUNA LOG MASUK SECARA NATIVE (Direct Login)
+        // 1. JIKA PENGGUNA LOG MASUK SECARA NATIVE (Direct Login / Bukan SSO)
         if (empty($idTokenHint)) {
             return redirect('/login')->with('logout_success', 'Anda telah berjaya log keluar.');
         }
 
-        // JIKA PENGGUNA LOG MASUK MELALUI SSO
-        if (env('KEYCLOAK_CLOSE_TAB', false)) {
-            $postLogoutUri = url('/auth/close-tab');
-        } else {
-            $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
-        }
-
-        $keycloakBaseUrl = config('services.keycloak.base_url');
-        $keycloakRealm   = config('services.keycloak.realms');
-
-        if ($keycloakBaseUrl && $keycloakRealm) {
-            $params = [
-                'post_logout_redirect_uri' => $postLogoutUri,
-                'client_id' => config('services.keycloak.client_id'),
-            ];
-
-            if ($idTokenHint) {
-                $params['id_token_hint'] = $idTokenHint;
+        // 2. JIKA PENGGUNA INGIN GLOBAL LOGOUT (Matikan sesi Keycloak sepenuhnya merentasi semua sistem)
+        // Hanya dijalankan jika developer menetapkan KEYCLOAK_GLOBAL_LOGOUT=true di .env
+        if (env('KEYCLOAK_GLOBAL_LOGOUT', false)) {
+            if (env('KEYCLOAK_CLOSE_TAB', false)) {
+                $postLogoutUri = url('/auth/close-tab');
+            } else {
+                $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
             }
 
-            $keycloakLogoutUrl = rtrim($keycloakBaseUrl, '/')
-                . '/realms/' . $keycloakRealm
-                . '/protocol/openid-connect/logout?' . http_build_query($params);
+            $keycloakBaseUrl = config('services.keycloak.base_url');
+            $keycloakRealm   = config('services.keycloak.realms');
 
-            return redirect()->away($keycloakLogoutUrl);
+            if ($keycloakBaseUrl && $keycloakRealm) {
+                $params = [
+                    'post_logout_redirect_uri' => $postLogoutUri,
+                    'client_id' => config('services.keycloak.client_id'),
+                ];
+
+                if ($idTokenHint) {
+                    $params['id_token_hint'] = $idTokenHint;
+                }
+
+                $keycloakLogoutUrl = rtrim($keycloakBaseUrl, '/')
+                    . '/realms/' . $keycloakRealm
+                    . '/protocol/openid-connect/logout?' . http_build_query($params);
+
+                return redirect()->away($keycloakLogoutUrl);
+            }
         }
 
-        return redirect('/');
+        // 3. SECARA LALAI: LOCAL LOGOUT (Kekalkan sesi SSO di Keycloak & Portal Dashboard)
+        // Tutup tab jika ditetapkan, atau lencongkan semula ke Dashboard Portal SSO
+        if (env('KEYCLOAK_CLOSE_TAB', false)) {
+            return $this->closeTab();
+        }
+
+        $postLogoutUri = env('KEYCLOAK_POST_LOGOUT_URL', 'http://ssolanding.local/dashboard');
+        return redirect()->away($postLogoutUri);
     }
 
     public function closeTab()
     {
-        $fallbackUrl = env('KEYCLOAK_POST_LOGOUT_URL', url('/'));
+        $fallbackUrl = env('KEYCLOAK_POST_LOGOUT_URL', 'http://ssolanding.local/dashboard');
         return response(
             '<script>
                 window.close();
                 setTimeout(function() {
                     window.location.href = "'.$fallbackUrl.'";
-                }, 1000);
+                }, 500);
             </script>'
         );
     }
