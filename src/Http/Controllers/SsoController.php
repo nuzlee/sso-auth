@@ -59,19 +59,35 @@ class SsoController
             $username = $decoded['preferred_username'] ?? null;
             $email    = $decoded['email'] ?? null;
             $name     = $decoded['name'] ?? $username;
+            $nokp     = $decoded['icno'] ?? null;
+            $ssoId    = $decoded['sub'] ?? null;
 
             if (!$username) {
                 throw new \Exception('Maklumat pengguna tidak lengkap dalam token SSO.');
             }
 
-            // 3. Cari pengguna sedia ada (cuba username dulu, kemudian email)
-            $user = User::where('username', $username)->first();
-            if (!$user && $email) {
+            $table = (new User)->getTable();
+
+            // 3. Cari pengguna sedia ada (turutan keutamaan: sso_id -> username -> email -> nokp)
+            $user = null;
+
+            if ($ssoId && Schema::hasColumn($table, 'sso_id')) {
+                $user = User::where('sso_id', $ssoId)->first();
+            }
+
+            if (!$user && $username && Schema::hasColumn($table, 'username')) {
+                $user = User::where('username', $username)->first();
+            }
+
+            if (!$user && $email && Schema::hasColumn($table, 'email')) {
                 $user = User::where('email', $email)->first();
             }
 
+            if (!$user && $nokp && Schema::hasColumn($table, 'nokp')) {
+                $user = User::where('nokp', $nokp)->first();
+            }
+
             // 4. Sediakan data — auto-detect lajur yang wujud dalam jadual
-            $table = (new User)->getTable();
 
             // Peta data dari token Keycloak ke lajur database
             $fieldMap = [
