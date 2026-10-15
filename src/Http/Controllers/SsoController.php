@@ -79,6 +79,7 @@ class SsoController
                 'username' => $username,
                 'email'    => $email,
                 'nokp'     => $decoded['icno'] ?? null,
+                'sso_id'   => $decoded['sub'] ?? $username,
             ];
 
             // Hanya masukkan data untuk lajur yang benar-benar wujud
