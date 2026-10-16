@@ -23,25 +23,26 @@ class SsoAuthServiceProvider extends ServiceProvider
 
     public function register()
     {
-        // Suntik konfigurasi services.keycloak secara automatik dari .env
-        $existing     = config('services.keycloak') ?? [];
-        $realm        = $existing['realms'] ?? $existing['realm'] ?? env('KEYCLOAK_REALM') ?? env('KEYCLOAK_REALMS') ?? env('KE_SSO_REALM') ?? 'kementerian-ekonomi';
-        $baseUrl      = $existing['base_url'] ?? env('KEYCLOAK_BASE_URL') ?? env('KE_SSO_BASE_URL');
-        $clientId     = $existing['client_id'] ?? env('KEYCLOAK_CLIENT_ID') ?? env('KE_SSO_CLIENT_ID');
-        $clientSecret = $existing['client_secret'] ?? env('KEYCLOAK_CLIENT_SECRET') ?? env('KE_SSO_CLIENT_SECRET');
-        $redirect     = $existing['redirect'] ?? env('KEYCLOAK_REDIRECT_URI') ?? env('KE_SSO_REDIRECT_URI');
+        // Ambil konfigurasi sedia ada (filter keluar nilai null atau string kosong)
+        $existing = array_filter(config('services.keycloak') ?? [], fn ($v) => !is_null($v) && $v !== '');
+
+        $realm        = $existing['realms'] ?? $existing['realm'] ?? env('KEYCLOAK_REALM') ?: env('KEYCLOAK_REALMS') ?: env('KE_SSO_REALM') ?: 'kementerian-ekonomi';
+        $baseUrl      = $existing['base_url'] ?? env('KEYCLOAK_BASE_URL') ?: env('KE_SSO_BASE_URL') ?: 'http://10.29.59.211:8080';
+        $clientId     = $existing['client_id'] ?? env('KEYCLOAK_CLIENT_ID') ?: env('KE_SSO_CLIENT_ID');
+        $clientSecret = $existing['client_secret'] ?? env('KEYCLOAK_CLIENT_SECRET') ?: env('KE_SSO_CLIENT_SECRET');
+        $redirect     = $existing['redirect'] ?? env('KEYCLOAK_REDIRECT_URI') ?: env('KE_SSO_REDIRECT_URI');
 
         config([
             'services.keycloak' => array_merge([
-                'client_id'       => $clientId,
-                'client_secret'   => $clientSecret,
-                'redirect'        => $redirect,
-                'base_url'        => $baseUrl,
                 'close_tab'       => env('KEYCLOAK_CLOSE_TAB', false),
                 'post_logout_url' => env('KEYCLOAK_POST_LOGOUT_URL'),
                 'global_logout'   => env('KEYCLOAK_GLOBAL_LOGOUT', false),
                 'login_redirect'  => env('KEYCLOAK_LOGIN_REDIRECT', '/dashboard'),
             ], $existing, [
+                'client_id'       => $clientId,
+                'client_secret'   => $clientSecret,
+                'redirect'        => $redirect,
+                'base_url'        => $baseUrl,
                 'realms'          => $realm,
                 'realm'           => $realm,
             ])
